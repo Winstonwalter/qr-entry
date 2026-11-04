@@ -73,6 +73,15 @@
     window.addEventListener('offline', check);
     check();
 
+    var EXEC = frame.getAttribute('src').split('?')[0];
+
+window.addEventListener('message', function (e) {
+  var d = e.data;
+  if (!d || d.type !== 'qr-nav') return;
+  if (d.page !== '' && d.page !== 'admin') return;   // only these pages are allowed
+  frame.src = EXEC + (d.page ? '?page=' + d.page : '');
+});
+
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
         navigator.serviceWorker.register('sw.js');
