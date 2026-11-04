@@ -77,8 +77,18 @@
 
 window.addEventListener('message', function (e) {
   var d = e.data;
-  if (!d || d.type !== 'qr-nav') return;
-  if (d.page !== '' && d.page !== 'admin') return;   // only these pages are allowed
+  if (!d) return;
+
+  if (d.type === 'qr-theme') {
+    var c = d.dark ? '#26282c' : '#ffffff';
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', c);
+    document.documentElement.style.background = c;
+    document.body.style.background = c;
+    return;
+  }
+
+  if (d.type !== 'qr-nav') return;
+  if (d.page !== '' && d.page !== 'admin') return;
   frame.src = EXEC + (d.page ? '?page=' + d.page : '');
 });
 
