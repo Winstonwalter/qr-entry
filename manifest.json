@@ -1,6 +1,6 @@
 {
   "name": "Event Entry System",
-  "short_name": "Entry",
+  "short_name": "Event App",
   "description": "Event guest check-in with QR codes",
   "start_url": "./",
   "scope": "./",
