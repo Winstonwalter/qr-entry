@@ -1,6 +1,6 @@
 // Service worker for the Event Entry System app shell.
 // The app itself (Google Apps Script) always loads from the internet.
-const CACHE = 'entry-shell-v1';
+const CACHE = 'entry-shell-v2';
 const SHELL = [
   './',
   'index.html',
@@ -33,7 +33,7 @@ self.addEventListener('fetch', function (e) {
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
 
   e.respondWith(
-    fetch(req)
+        fetch(req, { cache: 'no-cache' })
       .then(function (res) {
         const copy = res.clone();
         caches.open(CACHE).then(function (c) { c.put(req, copy); });
