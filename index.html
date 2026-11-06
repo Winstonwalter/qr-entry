@@ -75,7 +75,7 @@
 
   <div class="splash" id="splash">
     <img src="icon-512.png" alt="">
-    <div class="loading" id="splashText"><b>Loading...</b></div>
+    <div class="loading" id="splashText">Loading...</div>
   </div>
 
   <div class="offline" id="offline">
@@ -148,10 +148,6 @@
         return;
       }
 
-      if (d.type !== 'qr-nav') return;
-      if (d.page !== '' && d.page !== 'admin') return;
-      showSplash();
-      frame.src = EXEC + (d.page ? '?page=' + d.page : '');
     });
 
     // start-up
