@@ -17,10 +17,37 @@
     html, body { margin: 0; height: 100%; background: #ffffff; }
     iframe { position: fixed; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
 
+    /* ===== loading screen ===== */
+    .splash {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      z-index: 20;
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.5s ease;
+    }
+    .splash.hide { opacity: 0; pointer-events: none; }
+    .splash img { width: 160px; height: 160px; border-radius: 34px; }
+    .splash .loading {
+      margin-top: 18px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      font-size: 14px;
+      letter-spacing: 3px;
+      color: #777;
+      animation: fadeLoop 1.6s ease-in-out infinite;
+    }
+    @keyframes fadeLoop {
+      0%, 100% { opacity: 0.15; }
+      50%      { opacity: 1; }
+    }
+
+    /* ===== no internet screen ===== */
     .offline {
       display: none;
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      z-index: 10;
+      z-index: 30;
       background: #ffffff;
       flex-direction: column;
       align-items: center;
@@ -44,8 +71,12 @@
 </head>
 <body>
 
-  <!-- >>> REPLACE THE TEXT BELOW WITH YOUR REAL /exec LINK (copy it from your old index.html) <<< -->
   <iframe id="app" src="https://script.google.com/macros/s/AKfycbzR2g7WsA4NVN1jccjh8WTS5YcAkkJmIRoU60Jz7kN92l2d7zzJaIAyh7-Q9IJo6MmNOw/exec" allow="camera; fullscreen; vibrate"></iframe>
+
+  <div class="splash" id="splash">
+    <img src="icon-512.png" alt="">
+    <div class="loading" id="splashText">Loading</div>
+  </div>
 
   <div class="offline" id="offline">
     <img src="icon-192.png" alt="">
@@ -57,12 +88,44 @@
   <script>
     var frame = document.getElementById('app');
     var box = document.getElementById('offline');
+    var splash = document.getElementById('splash');
+    var splashText = document.getElementById('splashText');
+
+    var EXEC = frame.getAttribute('src').split('?')[0];
+    var MIN_MS = 1200;    // show the loading screen at least this long
+    var MAX_MS = 15000;   // never keep it longer than this
+    var shownAt = Date.now();
+    var maxTimer = null;
+
+    function setTheme(dark) {
+      var c = dark ? '#26282c' : '#ffffff';
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', c);
+      document.documentElement.style.background = c;
+      document.body.style.background = c;
+      splash.style.background = c;
+      splashText.style.color = dark ? '#b0b3b8' : '#777';
+      try { localStorage.setItem('wrapTheme', dark ? 'dark' : 'light'); } catch (e) {}
+    }
+
+    function showSplash() {
+      shownAt = Date.now();
+      splash.classList.remove('hide');
+      clearTimeout(maxTimer);
+      maxTimer = setTimeout(hideSplash, MAX_MS);
+    }
+
+    function hideSplash() {
+      clearTimeout(maxTimer);
+      var wait = Math.max(0, MIN_MS - (Date.now() - shownAt));
+      setTimeout(function () { splash.classList.add('hide'); }, wait);
+    }
 
     function check() {
       box.classList.toggle('show', !navigator.onLine);
     }
     function retry() {
       if (navigator.onLine) {
+        showSplash();
         frame.src = frame.src;   // reload the app
         box.classList.remove('show');
       } else {
@@ -71,26 +134,32 @@
     }
     window.addEventListener('online', retry);
     window.addEventListener('offline', check);
+
+    // backup: if the app never says it is ready, hide the loading screen after the page loads
+    frame.addEventListener('load', function () { setTimeout(hideSplash, 6000); });
+
+    window.addEventListener('message', function (e) {
+      var d = e.data;
+      if (!d) return;
+
+      if (d.type === 'qr-theme') {      // the app is ready and tells us its theme
+        setTheme(!!d.dark);
+        hideSplash();
+        return;
+      }
+
+      if (d.type !== 'qr-nav') return;
+      if (d.page !== '' && d.page !== 'admin') return;
+      showSplash();
+      frame.src = EXEC + (d.page ? '?page=' + d.page : '');
+    });
+
+    // start-up
+    var startDark = false;
+    try { startDark = localStorage.getItem('wrapTheme') === 'dark'; } catch (e) {}
+    setTheme(startDark);
+    showSplash();
     check();
-
-    var EXEC = frame.getAttribute('src').split('?')[0];
-
-window.addEventListener('message', function (e) {
-  var d = e.data;
-  if (!d) return;
-
-  if (d.type === 'qr-theme') {
-    var c = d.dark ? '#26282c' : '#ffffff';
-    document.querySelector('meta[name="theme-color"]').setAttribute('content', c);
-    document.documentElement.style.background = c;
-    document.body.style.background = c;
-    return;
-  }
-
-  if (d.type !== 'qr-nav') return;
-  if (d.page !== '' && d.page !== 'admin') return;
-  frame.src = EXEC + (d.page ? '?page=' + d.page : '');
-});
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
